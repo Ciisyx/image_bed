@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" role="img" aria-labelledby="title desc">
+  <title id="title">STM32H563到Zynq的JTAG、DAP与PS访问架构</title>
+  <desc id="desc">展示STM32 GPIO模拟JTAG，经DAP JTAG-DP TAP和PL TAP级联，再通过DPACC、APACC、AHB及APB MEM-AP访问Zynq OCM、CPU调试模块和W29N01 NAND的完整路径。</desc>
+  <defs>
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #172033; }
+      .subtitle { font: 400 18px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #526078; }
+      .group-title { font: 700 21px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #23304a; }
+      .box-title { font: 700 19px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #172033; }
+      .box-text { font: 400 16px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #33415c; }
+      .small { font: 400 14px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #526078; }
+      .arrow-label { font: 700 15px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #1f3558; }
+      .group { fill: #f8fafc; stroke: #b8c3d5; stroke-width: 2; rx: 18; }
+      .physical { fill: #e7f1ff; stroke: #3976c5; stroke-width: 2.5; rx: 14; }
+      .tap { fill: #eef0ff; stroke: #6559c7; stroke-width: 2.5; rx: 14; }
+      .dp { fill: #fff3df; stroke: #d58b25; stroke-width: 2.5; rx: 14; }
+      .ap { fill: #e8f7ee; stroke: #30905b; stroke-width: 2.5; rx: 14; }
+      .resource { fill: #f5f7fa; stroke: #718096; stroke-width: 2; rx: 12; }
+      .debug { fill: #f4eaff; stroke: #8a55ba; stroke-width: 2.5; rx: 14; }
+      .nand { fill: #fff0ed; stroke: #c65f4a; stroke-width: 2.5; rx: 14; }
+      .wire { fill: none; stroke: #3976c5; stroke-width: 3; marker-end: url(#blueArrow); }
+      .serial { fill: none; stroke: #6559c7; stroke-width: 3.5; marker-end: url(#purpleArrow); }
+      .dp-line { fill: none; stroke: #d58b25; stroke-width: 3; marker-end: url(#orangeArrow); }
+      .ap-line { fill: none; stroke: #30905b; stroke-width: 3; marker-end: url(#greenArrow); }
+      .debug-line { fill: none; stroke: #8a55ba; stroke-width: 3; marker-end: url(#violetArrow); }
+      .nand-line { fill: none; stroke: #c65f4a; stroke-width: 3; marker-end: url(#redArrow); }
+      .broadcast { fill: none; stroke: #3976c5; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#blueArrow); }
+    </style>
+    <marker id="blueArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#3976c5"/></marker>
+    <marker id="purpleArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#6559c7"/></marker>
+    <marker id="orangeArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#d58b25"/></marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#30905b"/></marker>
+    <marker id="violetArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#8a55ba"/></marker>
+    <marker id="redArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#c65f4a"/></marker>
+  </defs>
+
+  <rect width="1600" height="1040" fill="#ffffff"/>
+  <text x="800" y="50" text-anchor="middle" class="title">STM32H563 → Zynq JTAG / DAP / PS 完整访问架构</text>
+  <text x="800" y="82" text-anchor="middle" class="subtitle">TAP负责JTAG状态与IR/DR扫描；DAP负责调试访问路由；MEM-AP负责转换为PS总线事务</text>
+
+  <!-- Physical and TAP chain -->
+  <rect x="35" y="110" width="1530" height="245" class="group"/>
+  <text x="60" y="142" class="group-title">① JTAG物理连接与级联TAP</text>
+
+  <rect x="70" y="170" width="245" height="125" class="physical"/>
+  <text x="192" y="203" text-anchor="middle" class="box-title">STM32H563</text>
+  <text x="192" y="232" text-anchor="middle" class="box-text">GPIO模拟JTAG主机</text>
+  <text x="192" y="260" text-anchor="middle" class="small">PA4=TMS　PC10=TCK</text>
+  <text x="192" y="283" text-anchor="middle" class="small">PC12=TDI　PC11=TDO</text>
+
+  <rect x="470" y="170" width="300" height="125" class="tap"/>
+  <text x="620" y="202" text-anchor="middle" class="box-title">DAP的JTAG-DP TAP</text>
+  <text x="620" y="231" text-anchor="middle" class="box-text">TAP状态机 + IR + DR</text>
+  <text x="620" y="260" text-anchor="middle" class="small">IDCODE / DPACC / APACC / BYPASS</text>
+
+  <rect x="940" y="170" width="300" height="125" class="tap"/>
+  <text x="1090" y="202" text-anchor="middle" class="box-title">PL TAP</text>
+  <text x="1090" y="231" text-anchor="middle" class="box-text">TAP状态机 + IR + DR</text>
+  <text x="1090" y="260" text-anchor="middle" class="small">IDCODE / BYPASS / 边界扫描 / 配置</text>
+
+  <rect x="1380" y="190" width="145" height="85" class="physical"/>
+  <text x="1452" y="223" text-anchor="middle" class="box-title">STM32</text>
+  <text x="1452" y="250" text-anchor="middle" class="small">TDO输入</text>
+
+  <path d="M315 220 H470" class="serial"/>
+  <text x="392" y="207" text-anchor="middle" class="arrow-label">TDI</text>
+  <path d="M770 220 H940" class="serial"/>
+  <text x="855" y="207" text-anchor="middle" class="arrow-label">串行链</text>
+  <path d="M1240 220 H1380" class="serial"/>
+  <text x="1310" y="207" text-anchor="middle" class="arrow-label">TDO</text>
+
+  <path d="M315 278 H400 V315 H620 V296" class="broadcast"/>
+  <path d="M400 315 H1090 V296" class="broadcast"/>
+  <text x="700" y="338" text-anchor="middle" class="arrow-label">TMS / TCK 同时驱动两个TAP</text>
+
+  <!-- DAP internals -->
+  <rect x="35" y="385" width="860" height="605" class="group"/>
+  <text x="60" y="418" class="group-title">② ARM CoreSight DAP：从JTAG事务到PS总线事务</text>
+
+  <rect x="285" y="450" width="355" height="92" class="dp"/>
+  <text x="462" y="480" text-anchor="middle" class="box-title">Debug Port（DP）</text>
+  <text x="462" y="510" text-anchor="middle" class="box-text">CTRL/STAT　SELECT　RDBUFF</text>
+  <text x="462" y="534" text-anchor="middle" class="small">IR = DPACC</text>
+
+  <path d="M620 295 V375 H462 V450" class="dp-line"/>
+
+  <rect x="115" y="600" width="305" height="110" class="ap"/>
+  <text x="267" y="632" text-anchor="middle" class="box-title">AP0：AHB MEM-AP</text>
+  <text x="267" y="662" text-anchor="middle" class="box-text">IDR = 0x44770001</text>
+  <text x="267" y="689" text-anchor="middle" class="small">系统内存与外设访问</text>
+
+  <rect x="505" y="600" width="305" height="110" class="debug"/>
+  <text x="657" y="632" text-anchor="middle" class="box-title">AP1：APB MEM-AP</text>
+  <text x="657" y="662" text-anchor="middle" class="box-text">IDR = 0x24770002</text>
+  <text x="657" y="689" text-anchor="middle" class="small">Cortex-A9调试寄存器访问</text>
+
+  <path d="M462 542 V570 H267 V600" class="ap-line"/>
+  <path d="M462 570 H657 V600" class="ap-line"/>
+  <text x="472" y="592" class="arrow-label">IR=APACC，SELECT决定AP</text>
+
+  <rect x="115" y="770" width="305" height="92" class="resource"/>
+  <text x="267" y="802" text-anchor="middle" class="box-title">PS AHB / AXI系统总线</text>
+  <text x="267" y="832" text-anchor="middle" class="small">CSW控制宽度　TAR设置地址　DRW传输数据</text>
+  <path d="M267 710 V770" class="ap-line"/>
+
+  <rect x="505" y="770" width="305" height="92" class="debug"/>
+  <text x="657" y="802" text-anchor="middle" class="box-title">CoreSight Debug APB</text>
+  <text x="657" y="832" text-anchor="middle" class="small">DSCR / DRCR / ITR / DTR</text>
+  <path d="M657 710 V770" class="debug-line"/>
+
+  <rect x="115" y="905" width="305" height="60" class="resource"/>
+  <text x="267" y="942" text-anchor="middle" class="box-text">OCM　SLCR　PS外设　DDR</text>
+  <path d="M267 862 V905" class="ap-line"/>
+
+  <rect x="505" y="905" width="305" height="60" class="debug"/>
+  <text x="657" y="942" text-anchor="middle" class="box-text">Cortex-A9停止 / 启动 / 寄存器访问</text>
+  <path d="M657 862 V905" class="debug-line"/>
+
+  <!-- Runtime programming path -->
+  <rect x="925" y="385" width="640" height="605" class="group"/>
+  <text x="950" y="418" class="group-title">③ BootBinLoader运行与NAND烧写路径</text>
+
+  <rect x="1010" y="475" width="470" height="88" class="resource"/>
+  <text x="1245" y="507" text-anchor="middle" class="box-title">STM32通过AP0写入Zynq OCM</text>
+  <text x="1245" y="537" text-anchor="middle" class="small">ZynqJtag_WriteMemory → CSW / TAR / DRW</text>
+
+  <rect x="1010" y="625" width="470" height="88" class="debug"/>
+  <text x="1245" y="657" text-anchor="middle" class="box-title">Cortex-A9从OCM启动BootBinLoader</text>
+  <text x="1245" y="687" text-anchor="middle" class="small">JTAG设置PC = 0x00010000并Restart</text>
+
+  <rect x="1010" y="775" width="220" height="88" class="resource"/>
+  <text x="1120" y="807" text-anchor="middle" class="box-title">PS SMC</text>
+  <text x="1120" y="837" text-anchor="middle" class="small">NAND控制器</text>
+
+  <rect x="1270" y="775" width="210" height="88" class="resource"/>
+  <text x="1375" y="807" text-anchor="middle" class="box-title">PS MIO</text>
+  <text x="1375" y="837" text-anchor="middle" class="small">CLE/ALE/WE/RE/IO</text>
+
+  <rect x="1110" y="910" width="270" height="60" class="nand"/>
+  <text x="1245" y="947" text-anchor="middle" class="box-title">W29N01 NAND</text>
+
+  <path d="M1245 563 V625" class="ap-line"/>
+  <text x="1260" y="600" class="small">OCM中的程序与数据</text>
+  <path d="M1245 713 V745 H1120 V775" class="nand-line"/>
+  <path d="M1230 819 H1270" class="nand-line"/>
+  <path d="M1375 863 V885 H1245 V910" class="nand-line"/>
+
+  <!-- Legend -->
+  <g transform="translate(945,445)">
+    <line x1="0" y1="0" x2="45" y2="0" class="dp-line"/><text x="58" y="5" class="small">DPACC / DP控制</text>
+    <line x1="220" y1="0" x2="265" y2="0" class="ap-line"/><text x="278" y="5" class="small">APACC / 系统访问</text>
+    <line x1="430" y1="0" x2="475" y2="0" class="nand-line"/><text x="488" y="5" class="small">NAND烧写</text>
+  </g>
+</svg>
