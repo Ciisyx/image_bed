@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1480" viewBox="0 0 1800 1480" role="img" aria-labelledby="title desc">
+  <title id="title">STM32 GPIO模拟Zynq JTAG完整时序</title>
+  <desc id="desc">四线JTAG时序图，包含TAP复位、PL和DAP IDCODE读取、DPACC请求与RDBUFF响应，以及DPACC SELECT和APACC访问。</desc>
+  <defs>
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #172033; }
+      .subtitle { font: 400 17px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #526078; }
+      .panel-title { font: 700 23px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #22304a; }
+      .label { font: 700 18px Consolas, "Microsoft YaHei", sans-serif; fill: #1f2c42; }
+      .text { font: 400 15px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #33415c; }
+      .small { font: 400 13px "Microsoft YaHei", "Noto Sans SC", sans-serif; fill: #526078; }
+      .field { font: 700 14px Consolas, "Microsoft YaHei", sans-serif; fill: #20314f; }
+      .panel { fill: #fbfcfe; stroke: #b9c5d8; stroke-width: 2; rx: 16; }
+      .row { fill: #f5f7fa; stroke: #d2d9e5; stroke-width: 1; }
+      .state { fill: #eef2f7; stroke: #aebacc; stroke-width: 1.5; }
+      .reset { fill: #e7f1ff; stroke: #3976c5; stroke-width: 1.8; }
+      .ir { fill: #eeeaff; stroke: #6a59c9; stroke-width: 1.8; }
+      .dp { fill: #fff1d9; stroke: #d58b25; stroke-width: 1.8; }
+      .ap { fill: #e6f6ed; stroke: #30905b; stroke-width: 1.8; }
+      .read { fill: #e8effa; stroke: #5777a8; stroke-width: 1.8; }
+      .unknown { fill: #f2f3f5; stroke: #8a94a6; stroke-width: 1.5; }
+      .divider { stroke: #c5cedc; stroke-width: 1.5; stroke-dasharray: 5 5; }
+      .signal { fill: none; stroke: #283a5b; stroke-width: 3; }
+      .sample { stroke: #c65f4a; stroke-width: 2; stroke-dasharray: 5 4; }
+      .flow { fill: none; stroke: #5f6f89; stroke-width: 2.5; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#5f6f89"/></marker>
+    <pattern id="tck" width="20" height="36" patternUnits="userSpaceOnUse">
+      <path d="M0 28 H5 V8 H15 V28 H20" fill="none" stroke="#283a5b" stroke-width="2.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1800" height="1480" fill="#ffffff"/>
+  <text x="900" y="48" text-anchor="middle" class="title">STM32H563 GPIO模拟Zynq JTAG：IDCODE、DPACC与APACC完整时序</text>
+  <text x="900" y="78" text-anchor="middle" class="subtitle">TMS/TDI在TCK低电平时建立；TCK上升沿推进TAP并移位；当前代码在TCK高电平期间采样TDO</text>
+
+  <!-- Overview -->
+  <rect x="35" y="100" width="1730" height="105" class="panel"/>
+  <text x="60" y="130" class="panel-title">操作顺序</text>
+  <rect x="210" y="120" width="180" height="55" rx="10" class="reset"/><text x="300" y="153" text-anchor="middle" class="field">TAP RESET</text>
+  <path d="M390 148 H450" class="flow"/>
+  <rect x="450" y="120" width="220" height="55" rx="10" class="read"/><text x="560" y="143" text-anchor="middle" class="field">IDCODE验证</text><text x="560" y="163" text-anchor="middle" class="small">级联64b + 显式DAP 33b</text>
+  <path d="M670 148 H730" class="flow"/>
+  <rect x="730" y="120" width="220" height="55" rx="10" class="dp"/><text x="840" y="143" text-anchor="middle" class="field">DPACC CTRL/STAT</text><text x="840" y="163" text-anchor="middle" class="small">DAP上电与状态</text>
+  <path d="M950 148 H1010" class="flow"/>
+  <rect x="1010" y="120" width="210" height="55" rx="10" class="dp"/><text x="1115" y="143" text-anchor="middle" class="field">DPACC SELECT</text><text x="1115" y="163" text-anchor="middle" class="small">选择AP与Bank</text>
+  <path d="M1220 148 H1280" class="flow"/>
+  <rect x="1280" y="120" width="250" height="55" rx="10" class="ap"/><text x="1405" y="143" text-anchor="middle" class="field">APACC</text><text x="1405" y="163" text-anchor="middle" class="small">IDR / CSW / TAR / DRW</text>
+  <path d="M1530 148 H1590" class="flow"/>
+  <rect x="1590" y="120" width="145" height="55" rx="10" class="read"/><text x="1662" y="143" text-anchor="middle" class="field">RDBUFF</text><text x="1662" y="163" text-anchor="middle" class="small">ACK/数据</text>
+
+  <!-- Panel A -->
+  <rect x="35" y="230" width="1730" height="400" class="panel"/>
+  <text x="60" y="266" class="panel-title">A. TAP复位后读取级联IDCODE（当前代码第一次探测）</text>
+  <text x="60" y="292" class="small">复位后两个TAP默认选中IDCODE DR；TDO先输出PL IDCODE，再输出DAP IDCODE，均为LSB first。</text>
+
+  <!-- headers A -->
+  <rect x="170" y="310" width="180" height="38" class="state"/><text x="260" y="334" text-anchor="middle" class="field">Test-Logic-Reset</text>
+  <rect x="350" y="310" width="70" height="38" class="state"/><text x="385" y="334" text-anchor="middle" class="field">Idle</text>
+  <rect x="420" y="310" width="90" height="38" class="state"/><text x="465" y="334" text-anchor="middle" class="small">Select-DR</text>
+  <rect x="510" y="310" width="90" height="38" class="state"/><text x="555" y="334" text-anchor="middle" class="small">Capture-DR</text>
+  <rect x="600" y="310" width="960" height="38" class="state"/><text x="1080" y="334" text-anchor="middle" class="field">Shift-DR：64 TCK</text>
+  <rect x="1560" y="310" width="100" height="38" class="state"/><text x="1610" y="334" text-anchor="middle" class="small">Update-DR</text>
+  <rect x="1660" y="310" width="70" height="38" class="state"/><text x="1695" y="334" text-anchor="middle" class="field">Idle</text>
+
+  <text x="80" y="382" class="label">TMS</text><rect x="170" y="355" width="1560" height="45" class="row"/>
+  <path d="M170 366 H350 V389 H420 V366 H510 V389 H600 H1545 V366 H1660 V389 H1730" class="signal"/>
+  <text x="260" y="394" text-anchor="middle" class="small">1 × 8</text><text x="465" y="394" text-anchor="middle" class="small">1</text><text x="555" y="394" text-anchor="middle" class="small">0</text><text x="1080" y="394" text-anchor="middle" class="small">前63位TMS=0；最后1位TMS=1</text>
+
+  <text x="80" y="447" class="label">TCK</text><rect x="170" y="420" width="1560" height="45" class="row"/><rect x="170" y="424" width="1560" height="36" fill="url(#tck)"/>
+  <text x="260" y="475" text-anchor="middle" class="small">≥5，代码使用8个脉冲</text><text x="1080" y="475" text-anchor="middle" class="small">每个上升沿移出1位并采样TDO</text>
+
+  <text x="80" y="512" class="label">TDI</text><rect x="170" y="485" width="1560" height="45" class="row"/><path d="M170 496 H1730" class="signal"/><text x="950" y="524" text-anchor="middle" class="small">读取阶段保持1；IDCODE DR为只读，移入值不影响IDCODE</text>
+
+  <text x="80" y="577" class="label">TDO</text><rect x="170" y="550" width="1560" height="55" class="row"/>
+  <rect x="170" y="555" width="430" height="45" class="unknown"/><text x="385" y="582" text-anchor="middle" class="field">无效/忽略</text>
+  <rect x="600" y="555" width="480" height="45" class="read"/><text x="840" y="575" text-anchor="middle" class="field">PL IDCODE[31:0] = 0x13722093</text><text x="840" y="594" text-anchor="middle" class="small">32 TCK，LSB first</text>
+  <rect x="1080" y="555" width="480" height="45" class="read"/><text x="1320" y="575" text-anchor="middle" class="field">DAP IDCODE[31:0] = 0x4BA00477</text><text x="1320" y="594" text-anchor="middle" class="small">32 TCK，LSB first</text>
+  <rect x="1560" y="555" width="170" height="45" class="unknown"/><text x="1645" y="582" text-anchor="middle" class="field">忽略</text>
+  <text x="900" y="622" text-anchor="middle" class="small">随后显式验证DAP：Shift-IR 10b〔PL BYPASS=0x3F，DAP IDCODE=0xE〕→ Shift-DR 33b〔丢弃PL BYPASS 1b，再读DAP IDCODE 32b〕</text>
+
+  <!-- Panel B -->
+  <rect x="35" y="655" width="1730" height="355" class="panel"/>
+  <text x="60" y="691" class="panel-title">B. 一次DPACC操作：提交请求后，再读DP RDBUFF取得posted响应</text>
+  <text x="60" y="717" class="small">外部DR链每次为36位：PL BYPASS 1位 + DAP请求/ACK 3位 + 数据32位。以下TMS字段给出每段状态跳转。</text>
+
+  <rect x="170" y="735" width="360" height="38" class="ir"/><text x="350" y="759" text-anchor="middle" class="field">选择IR=DPACC：10-bit IR链</text>
+  <rect x="530" y="735" width="560" height="38" class="dp"/><text x="810" y="759" text-anchor="middle" class="field">DR#1：提交DP读/写请求，36 TCK</text>
+  <rect x="1090" y="735" width="560" height="38" class="read"/><text x="1370" y="759" text-anchor="middle" class="field">DR#2：DPACC读RDBUFF，36 TCK</text>
+  <rect x="1650" y="735" width="80" height="38" class="state"/><text x="1690" y="759" text-anchor="middle" class="field">Idle</text>
+
+  <text x="80" y="812" class="label">TMS</text><rect x="170" y="785" width="1560" height="45" class="row"/>
+  <text x="350" y="813" text-anchor="middle" class="field">1100 | Shift-IR: 0…1 | 10</text>
+  <text x="810" y="813" text-anchor="middle" class="field">100 | Shift-DR: 0…1 | 10</text>
+  <text x="1370" y="813" text-anchor="middle" class="field">100 | Shift-DR: 0…1 | 10</text>
+  <line x1="530" y1="785" x2="530" y2="1000" class="divider"/><line x1="1090" y1="785" x2="1090" y2="1000" class="divider"/><line x1="1650" y1="785" x2="1650" y2="1000" class="divider"/>
+
+  <text x="80" y="872" class="label">TCK</text><rect x="170" y="845" width="1560" height="45" class="row"/>
+  <rect x="170" y="849" width="360" height="36" fill="url(#tck)"/><rect x="530" y="849" width="560" height="36" fill="url(#tck)"/><rect x="1090" y="849" width="560" height="36" fill="url(#tck)"/>
+  <text x="350" y="901" text-anchor="middle" class="small">TAP路径 + 10位IR</text><text x="810" y="901" text-anchor="middle" class="small">TAP路径 + 36位DR + Idle clocks</text><text x="1370" y="901" text-anchor="middle" class="small">TAP路径 + 36位DR + Idle clocks</text>
+
+  <text x="80" y="936" class="label">TDI</text><rect x="170" y="910" width="1560" height="45" class="row"/>
+  <rect x="175" y="915" width="350" height="35" class="ir"/><text x="350" y="938" text-anchor="middle" class="field">PL BYPASS=0x3F | DPACC=0xA</text>
+  <rect x="535" y="915" width="550" height="35" class="dp"/><text x="810" y="938" text-anchor="middle" class="field">BYP(1) | REQ={RnW,A2,A3}(3) | WDATA(32)</text>
+  <rect x="1095" y="915" width="550" height="35" class="read"/><text x="1370" y="938" text-anchor="middle" class="field">BYP(1) | REQ=RDBUFF READ(3) | 0(32)</text>
+
+  <text x="80" y="986" class="label">TDO</text><rect x="170" y="960" width="1560" height="40" class="row"/>
+  <text x="350" y="986" text-anchor="middle" class="small">Capture-IR内容，忽略</text>
+  <text x="810" y="986" text-anchor="middle" class="field">BYP(1) | 前一响应（posted，忽略）</text>
+  <text x="1370" y="986" text-anchor="middle" class="field">BYP(1) | ACK(3) | RDATA(32)</text>
+
+  <!-- Panel C -->
+  <rect x="35" y="1035" width="1730" height="405" class="panel"/>
+  <text x="60" y="1071" class="panel-title">C. APACC操作：先用DPACC选择AP/Bank，再访问AP，最后切回DPACC读取RDBUFF</text>
+  <text x="60" y="1097" class="small">示例：访问AP0的CSW/TAR/DRW，MEM-AP随后在Zynq PS总线上产生真正的内存读写。</text>
+
+  <rect x="170" y="1115" width="300" height="42" class="dp"/><text x="320" y="1133" text-anchor="middle" class="field">DPACC写SELECT</text><text x="320" y="1151" text-anchor="middle" class="small">APSEL + APBANKSEL</text>
+  <rect x="470" y="1115" width="260" height="42" class="ir"/><text x="600" y="1133" text-anchor="middle" class="field">IR=APACC</text><text x="600" y="1151" text-anchor="middle" class="small">10-bit，stream=0x2FF</text>
+  <rect x="730" y="1115" width="420" height="42" class="ap"/><text x="940" y="1133" text-anchor="middle" class="field">APACC DR：36 TCK</text><text x="940" y="1151" text-anchor="middle" class="small">访问IDR / CSW / TAR / DRW</text>
+  <rect x="1150" y="1115" width="240" height="42" class="ir"/><text x="1270" y="1133" text-anchor="middle" class="field">IR=DPACC</text><text x="1270" y="1151" text-anchor="middle" class="small">10-bit，stream=0x2BF</text>
+  <rect x="1390" y="1115" width="340" height="42" class="read"/><text x="1560" y="1133" text-anchor="middle" class="field">DP RDBUFF：36 TCK</text><text x="1560" y="1151" text-anchor="middle" class="small">取得AP操作ACK/数据</text>
+
+  <text x="80" y="1205" class="label">TMS</text><rect x="170" y="1175" width="1560" height="50" class="row"/>
+  <text x="320" y="1205" text-anchor="middle" class="small">DPACC完整事务</text>
+  <text x="600" y="1205" text-anchor="middle" class="field">1100 | 0…1 | 10</text>
+  <text x="940" y="1205" text-anchor="middle" class="field">100 | 0…1 | 10</text>
+  <text x="1270" y="1205" text-anchor="middle" class="field">1100 | 0…1 | 10</text>
+  <text x="1560" y="1205" text-anchor="middle" class="field">100 | 0…1 | 10</text>
+  <line x1="470" y1="1175" x2="470" y2="1415" class="divider"/><line x1="730" y1="1175" x2="730" y2="1415" class="divider"/><line x1="1150" y1="1175" x2="1150" y2="1415" class="divider"/><line x1="1390" y1="1175" x2="1390" y2="1415" class="divider"/>
+
+  <text x="80" y="1270" class="label">TCK</text><rect x="170" y="1240" width="1560" height="50" class="row"/>
+  <rect x="170" y="1247" width="300" height="36" fill="url(#tck)"/><rect x="470" y="1247" width="260" height="36" fill="url(#tck)"/><rect x="730" y="1247" width="420" height="36" fill="url(#tck)"/><rect x="1150" y="1247" width="240" height="36" fill="url(#tck)"/><rect x="1390" y="1247" width="340" height="36" fill="url(#tck)"/>
+
+  <text x="80" y="1335" class="label">TDI</text><rect x="170" y="1305" width="1560" height="50" class="row"/>
+  <text x="320" y="1335" text-anchor="middle" class="field">SELECT=APSEL&lt;&lt;24 | Bank</text>
+  <text x="600" y="1335" text-anchor="middle" class="field">PL BYP | APACC</text>
+  <text x="940" y="1335" text-anchor="middle" class="field">BYP(1) | REQ(3) | WDATA(32)</text>
+  <text x="1270" y="1335" text-anchor="middle" class="field">PL BYP | DPACC</text>
+  <text x="1560" y="1335" text-anchor="middle" class="field">BYP(1) | RDBUFF READ | 0(32)</text>
+
+  <text x="80" y="1400" class="label">TDO</text><rect x="170" y="1370" width="1560" height="50" class="row"/>
+  <text x="320" y="1400" text-anchor="middle" class="small">DP操作响应由其RDBUFF阶段取得</text>
+  <text x="600" y="1400" text-anchor="middle" class="small">Capture-IR，忽略</text>
+  <text x="940" y="1400" text-anchor="middle" class="field">前一DAP响应（posted）</text>
+  <text x="1270" y="1400" text-anchor="middle" class="small">Capture-IR，忽略</text>
+  <text x="1560" y="1400" text-anchor="middle" class="field">BYP(1) | ACK(3) | AP RDATA(32)</text>
+
+  <text x="900" y="1460" text-anchor="middle" class="small">注：长扫描段按字段压缩绘制，并非逐位等比例；所有多位字段均按LSB first串行传输。</text>
+</svg>
